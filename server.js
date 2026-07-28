@@ -7,7 +7,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-const publicDir = __dirname;
+const publicDir = path.join(__dirname, 'public');
 console.log('정적 파일 경로:', publicDir);
 
 app.use(express.static(publicDir));
@@ -29,27 +29,14 @@ io.on('connection', (socket) => {
   socket.emit('assigned-name', guestName);
 
   // 메시지 수신 -> 모든 접속자에게 브로드캐스트 (전송자 포함)
-  const COOLDOWN_MS = 5000;
-  socket.data.lastSentAt = 0;
-
   socket.on('chat-message', (text) => {
     if (!text || typeof text !== 'string') return;
     const trimmed = text.trim().slice(0, 500); // 길이 제한
     if (!trimmed) return;
-
-    const now = Date.now();
-    const elapsed = now - socket.data.lastSentAt;
-    if (elapsed < COOLDOWN_MS) {
-      // 쿨타임 위반 -> 본인에게만 알림, 브로드캐스트 안 함
-      socket.emit('cooldown', { remainingMs: COOLDOWN_MS - elapsed });
-      return;
-    }
-    socket.data.lastSentAt = now;
-
     io.emit('chat-message', {
       guest: guestName,
       text: trimmed,
-      ts: now
+      ts: Date.now()
     });
   });
 
