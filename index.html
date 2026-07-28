@@ -63,13 +63,40 @@
     if (nearBottom) box.scrollTop = box.scrollHeight;
   });
 
+  const COOLDOWN_MS = 5000;
+  const sendBtn = document.querySelector('#chatForm button');
+  const defaultBtnText = sendBtn.textContent;
+  let cooldownTimer = null;
+
+  function startCooldown(ms) {
+    sendBtn.disabled = true;
+    const endAt = Date.now() + ms;
+    clearInterval(cooldownTimer);
+    cooldownTimer = setInterval(() => {
+      const remaining = Math.ceil((endAt - Date.now()) / 1000);
+      if (remaining <= 0) {
+        clearInterval(cooldownTimer);
+        sendBtn.disabled = false;
+        sendBtn.textContent = defaultBtnText;
+      } else {
+        sendBtn.textContent = remaining + '초';
+      }
+    }, 200);
+  }
+
+  socket.on('cooldown', (data) => {
+    startCooldown(data.remainingMs);
+  });
+
   document.getElementById('chatForm').addEventListener('submit', (e) => {
     e.preventDefault();
+    if (sendBtn.disabled) return;
     const input = document.getElementById('msgInput');
     const text = input.value.trim();
     if (!text) return;
     socket.emit('chat-message', text);
     input.value = '';
+    startCooldown(COOLDOWN_MS);
   });
 </script>
 </body>
