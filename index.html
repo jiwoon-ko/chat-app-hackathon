@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>채팅</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; height:100%; font-family:-apple-system,BlinkMacSystemFont,"Malgun Gothic",sans-serif; background:#b2c7d9; }
+  #app { display:flex; flex-direction:column; height:100vh; max-width:720px; margin:0 auto; background:#fff; }
+  header { background:#3d5a80; color:#fff; padding:12px 16px; font-weight:700; font-size:16px; flex-shrink:0; }
+  #chatBox { flex:1; overflow-y:auto; padding:8px; background:#eaf0f4; }
+  .msg-row { display:flex; align-items:flex-start; padding:6px 4px; border-bottom:1px solid #dbe4ea; }
+  .msg-name { flex:0 0 90px; max-width:90px; font-size:12px; font-weight:700; color:#3d5a80; word-break:break-word; padding-top:6px; }
+  .msg-text { flex:1; background:#fff; padding:8px 12px; border-radius:10px; font-size:14px; color:#222; word-break:break-word; box-shadow:0 1px 2px rgba(0,0,0,0.08); }
+  .msg-row.me .msg-name { color:#d1495b; }
+  .msg-row.me .msg-text { background:#ffe28a; }
+  #chatForm { flex-shrink:0; display:flex; padding:10px; gap:8px; background:#fff; border-top:1px solid #ddd; }
+  #msgInput { flex:1; padding:10px 12px; border:1px solid #ccc; border-radius:20px; font-size:14px; outline:none; }
+  #chatForm button { padding:0 18px; border:none; border-radius:20px; background:#3d5a80; color:#fff; font-size:14px; cursor:pointer; }
+  @media (max-width:480px) { .msg-name { flex-basis:64px; max-width:64px; font-size:11px; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="myName">연결 중...</header>
+  <div id="chatBox"></div>
+  <form id="chatForm">
+    <input id="msgInput" placeholder="메시지를 입력하세요" autocomplete="off" />
+    <button type="submit">보내기</button>
+  </form>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+  let myName = null;
+
+  socket.on('assigned-name', (name) => {
+    myName = name;
+    document.getElementById('myName').textContent = myName;
+  });
+
+  socket.on('chat-message', (msg) => {
+    const box = document.getElementById('chatBox');
+    const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+
+    const row = document.createElement('div');
+    row.className = 'msg-row' + (msg.guest === myName ? ' me' : '');
+
+    const nameCell = document.createElement('div');
+    nameCell.className = 'msg-name';
+    nameCell.textContent = msg.guest;
+
+    const textCell = document.createElement('div');
+    textCell.className = 'msg-text';
+    textCell.textContent = msg.text;
+
+    row.appendChild(nameCell);
+    row.appendChild(textCell);
+    box.appendChild(row);
+
+    if (nearBottom) box.scrollTop = box.scrollHeight;
+  });
+
+  document.getElementById('chatForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const input = document.getElementById('msgInput');
+    const text = input.value.trim();
+    if (!text) return;
+    socket.emit('chat-message', text);
+    input.value = '';
+  });
+</script>
+</body>
+</html>
