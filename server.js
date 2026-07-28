@@ -7,7 +7,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-const publicDir = path.join(__dirname, 'public');
+const publicDir = __dirname;
 console.log('정적 파일 경로:', publicDir);
 
 app.use(express.static(publicDir));
